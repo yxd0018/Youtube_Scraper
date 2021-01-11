@@ -133,6 +133,11 @@ def read_properties():
     return tmp
 
 
+def getProperty(key):
+    global props
+    return props.get(key)
+
+
 @db_connector
 def cache_existing_videos(cur):
     global existing_videos
@@ -415,6 +420,7 @@ def get_playlist_videos(cur, playlistID):
     get_playlist_videos(playlistID)
     @:param str playlistID: Playlist ID as string
     '''
+
     @db_connector
     def next(cur, videoIDs, playlistID):
         Playlist_Seconds = get_videos_stats(videoIDs, 1, playlistID)
@@ -429,6 +435,7 @@ def get_playlist_videos(cur, playlistID):
     videos = []
     next_page_token = None
     video_IDS = []
+    colStr = table_column_str('tb_videos')
     while 1:
         res = youtube.playlistItems().list(part="snippet",
                                            maxResults=50,
@@ -450,7 +457,8 @@ def get_playlist_videos(cur, playlistID):
         except:
             ch_ID = 'skip'
         params = (Video_id, "", 0, 0, "", "", "")
-        cur.execute("INSERT OR IGNORE INTO tb_videos VALUES (?, ?, ?,? ,?, ?, ?, 0,'', '',0,0,0,0,0,'',0,0,0,0)",
+        cur.execute("INSERT OR IGNORE INTO tb_videos " + colStr +
+                    " VALUES (?, ?, ?,? ,?, ?, ?, 0,'', '',0,0,0,0,0,'',0,0,0)",
                     params)
 
     print('Videos in this playlist =', len(video_IDS))
@@ -472,12 +480,11 @@ def get_channel_videos(cur, channel_id):
 
     videos = []
     next_page_token = None
-    new_video_ids = []
-
+    query_max_result = 200
     while 1:
         res = youtube.playlistItems().list(playlistId=playlist_id,
                                            part='snippet',
-                                           maxResults=50,
+                                           maxResults=query_max_result,
                                            pageToken=next_page_token).execute()
         videos += res['items']
         next_page_token = res.get('nextPageToken')
@@ -488,10 +495,7 @@ def get_channel_videos(cur, channel_id):
             break
 
     global existing_videos
-    for newVid in video_ids:
-        if newVid not in existing_videos:
-            new_video_ids.append(newVid)
-
+    new_video_ids = [v for v in video_ids if v not in existing_videos]
     print('\nParsing ', len(new_video_ids), ' videos which are not in any playlist for channel ',
           channel_id)
     get_videos_stats(video_ids, flag=0)
@@ -512,6 +516,12 @@ def most_watched(cur, n=5):
         else:
             title = result[2]
         print(Link, '\t', result[1], '\t', title)
+
+
+@db_connector
+def query_channel(cur, channelID):
+    cur.execute("select channel_id, channel_title from tb_channels where channel_id=?", (channelID, ))
+    return cur.fetchone()
 
 
 @db_connector
@@ -571,14 +581,13 @@ def update_is_seen(cur):
 
 
 @db_connector
-def update_worth(cur, chList=None):
-    global props
-    sql = props.get('updateWorth')
-    if chList:
-        for ch in chList:
+def update_worth(cur, chMap=None):
+    sql = getProperty('updateWorth')
+    if chMap:
+        for ch, limit in chMap.items():
             subquery = sql + " and Channel_ID = ?"
-            stmt = "UPDATE tb_videos SET worth = 1 WHERE Video_ID IN (" + subquery + ")"
-            cur.execute(stmt, (ch, ))
+            stmt = "UPDATE tb_videos SET worth=1 WHERE Video_ID IN (" + subquery + ")"
+            cur.execute(stmt, (limit, ch, ))
     else:
         cur.execute("UPDATE tb_videos SET worth = 1 WHERE Video_ID IN (" + sql + ")")
 
@@ -650,12 +659,14 @@ def load_history(cur, res='n'):
 
 
 @db_connector
-def generate_download(cur, channels, n=50):
+def generate_download(cur, channels, limit=200):
     '''
-    generate download file from db with worth=1 and Is_Downloaded = 0
+    generate download file from db with worth=1 and Is_Downloaded = 0.
+    New file is generated every time with timestamp as extension.
+
     :param cur:
     :param channels:
-    :param n:
+    :param limit: 0 means all
     :param append: if true, delete old existing file first
     :return:
     '''
@@ -670,18 +681,26 @@ def generate_download(cur, channels, n=50):
 
     with open(filepath, 'w', encoding='utf-8') as fp:
         for channelID in channels:
+            sql = "SELECT Video_ID FROM tb_videos WHERE Worth = 1 and Is_Downloaded = 0"
+            orderby = " order by epoch desc"
             if channelID == '':
-                cur.execute("SELECT Video_ID FROM tb_videos WHERE Worth = 1 and Is_Downloaded = 0 "
-                            + "order by epoch desc LIMIT ?", (n,))
+                sql += orderby
+                if limit:
+                    sql = (sql + " LIMIT {} ").format(limit)
+                cur.execute(sql)
             else:
+                sql += " and Channel_ID = ?" + orderby
+                if limit:
+                    sql = (sql + " LIMIT {} ").format(limit)
                 try:
-                    cur.execute(
-                        "SELECT Video_ID FROM tb_videos WHERE Worth = 1 and Is_Downloaded = 0 and Channel_ID = ? order by epoch desc LIMIT ?",
-                        (channelID, n))
+                    cur.execute(sql, (channelID, ))
                 except:
                     print("Please enter correct Channel ID")
-            down_list = cur.fetchall()
-            for item in down_list:
+            vidList = cur.fetchall()
+            if vidList:
+                rec = query_channel(channelID)
+                fp.write('# {} {} \n'.format(channelID, rec[1]))
+            for item in vidList:
                 link = "https://www.youtube.com/watch?v=" + item[0]
                 cur.execute("UPDATE tb_videos SET Is_Downloaded = 1 WHERE Video_ID = ?", (item[0],))
                 fp.write(link)
@@ -701,32 +720,43 @@ def entire_channel(ch_id):
     get_channel_videos(ch_id)
 
 
-def sync_generate_download():
-    global props
+def sync_generate_download(sync=True, limit=100):
+    def read_channel_file():
+        defaultLimit = getProperty('default_like_count')
+        channelFile = getProperty('channels_file')
+        lines = read_file(channelFile)
+        channelLimitMap = {}
+        for r in lines:
+            if ',' in r:
+                token = r.split(',')
+                ch = token[0]
+                limit = token[1]
+            else:
+                ch = r
+                limit = defaultLimit
+
+            channelLimitMap[ch] = limit
+        return channelLimitMap
+
     get_api_key()
 
     if not os.path.exists("youtube.db"):
         create_new()
 
-    channelFile = props.get('channels_file')
-    channels = read_file(channelFile)
-    chList = []
-    for ch in channels:
-        if '.' in ch:
-            get_playlist_videos(ch.split('.')[1])
-        else:
-            get_channel_details(ch)
-            get_channel_videos(ch)
-        chList.append(ch)
-    update_worth(chList)
-    generate_download(chList, n=100)
+    channelLimitMap = read_channel_file()
+
+    if sync:
+        for ch in channelLimitMap:
+            if '.' in ch:
+                get_playlist_videos(ch.split('.')[1])
+            else:
+                get_channel_details(ch)
+                get_channel_videos(ch)
+        update_worth(channelLimitMap)
+
+    generate_download(channelLimitMap.keys(), limit=limit)
 
 
 if __name__ == "__main__":
-    # create_new()
-    # temp = input("Enter API KEY \n")
-    # get_api_key(temp)
-    # get_channel_details('UCJQJ4GjTiq5lmn8czf8oo0Q')
-    # get_playlist_videos('PLZHQObOWTQDP5CVelJJ1bNDouqrAhVPev')
-    # download_n()
-    sync_generate_download()
+    sync_generate_download(limit=100)
+    # sync_generate_download(sync=False, limit=0)
