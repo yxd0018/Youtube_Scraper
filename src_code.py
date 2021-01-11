@@ -9,6 +9,7 @@ import os
 
 
 global api_key, youtube, props, existing_videos
+query_limit = 50
 
 
 def db_connector(func):
@@ -197,17 +198,21 @@ def get_channel_id(ch_name):
         print(" ")
 
 
-@db_connector
-def table_columns(cur, tablename):
-    cur.execute("PRAGMA table_info(" + tablename + ")")
-    results = cur.fetchall()
-    ret = []
-    for r in results:
-        ret.append(r[1])
-    return ret
-
-
 def table_column_str(tablename):
+    '''
+    construct column list for query.
+    :param str tablename:
+    :return str:
+    '''
+    @db_connector
+    def table_columns(cur, tablename):
+        cur.execute("PRAGMA table_info(" + tablename + ")")
+        results = cur.fetchall()
+        ret = []
+        for r in results:
+            ret.append(r[1])
+        return ret
+
     cols = table_columns(tablename)
     cols = [c for c in cols if c not in ['Is_Downloaded', ]]
     colStr = ""
@@ -226,8 +231,8 @@ def get_videos_stats(cur, video_ids, flag=1, playlistID=None):
     colStr = table_column_str('tb_videos')
 
     #TODO: batch?
-    for i in range(0, len(video_ids), 50):
-        res = youtube.videos().list(id=','.join(video_ids[i:i + 50]),
+    for i in range(0, len(video_ids), query_limit):
+        res = youtube.videos().list(id=','.join(video_ids[i:i + query_limit]),
                                     part='snippet,statistics,contentDetails').execute()
         stats += res['items']
 
@@ -351,7 +356,7 @@ def get_channel_playlists(cur, channel_id, single=False, playlistID=''):
         res = youtube.playlists().list(part="snippet,contentDetails",
                                        channelId=channel_id,
                                        pageToken=next_page_token,
-                                       maxResults=50
+                                       maxResults=query_limit
                                        ).execute()
         playlists += res['items']
         next_page_token = res.get('nextPageToken')
@@ -438,7 +443,7 @@ def get_playlist_videos(cur, playlistID):
     colStr = table_column_str('tb_videos')
     while 1:
         res = youtube.playlistItems().list(part="snippet",
-                                           maxResults=50,
+                                           maxResults=query_limit,
                                            playlistId=playlistID,
                                            pageToken=next_page_token
                                            ).execute()
@@ -480,11 +485,10 @@ def get_channel_videos(cur, channel_id):
 
     videos = []
     next_page_token = None
-    query_max_result = 200
     while 1:
         res = youtube.playlistItems().list(playlistId=playlist_id,
                                            part='snippet',
-                                           maxResults=query_max_result,
+                                           maxResults=query_limit,
                                            pageToken=next_page_token).execute()
         videos += res['items']
         next_page_token = res.get('nextPageToken')
@@ -603,7 +607,7 @@ def update_history(cur):
     for i in range(1000):
         cur.execute("SELECT Count(*) FROM video_history")
         tot = cur.fetchone()
-        cur.execute("SELECT Video_ID FROM video_history WHERE Is_in_Main = 0 LIMIT 50;")
+        cur.execute("SELECT Video_ID FROM video_history WHERE Is_in_Main = 0 LIMIT {};".format(query_limit))
         temp = cur.fetchall()
         if len(temp) < 2:
             print("All Videos From Watched History are now in main table tb_videos")
@@ -613,7 +617,7 @@ def update_history(cur):
             cur.execute("UPDATE video_history SET Is_in_Main = 1 WHERE Video_ID = ?", (item[0],))
             result.append(item[0])
 
-        print('Parsing Watch History Videos :', (i * 50), ' / ', tot[0], end="\r")
+        print('Parsing Watch History Videos :', (i * query_limit), ' / ', tot[0], end="\r")
         get_videos_stats(result, 1)
         update_is_in_main()
 
@@ -757,6 +761,6 @@ def sync_generate_download(sync=True, limit=100):
     generate_download(channelLimitMap.keys(), limit=limit)
 
 
-if __name__ == "__main__":
+def main():
     sync_generate_download(limit=100)
     # sync_generate_download(sync=False, limit=0)

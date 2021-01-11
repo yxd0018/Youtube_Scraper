@@ -25,9 +25,6 @@ def log1(string, color, figlet=False):
         six.print_(string)
 
 
-log1("Youtube_Scraper", color="blue", figlet=True)
-log1("Welcome to Youtube_Scraper", "green")
-
 style = style_from_dict({
     Token.QuestionMark: '#E91E63 bold',
     Token.Selected: '#673AB7 bold',
@@ -46,9 +43,6 @@ class NumberValidator(Validator):
                 message='Please enter a number',
                 cursor_position=len(document.text))  # Move cursor to end
 
-
-print('Please Choose the desired Options, option can be stored in property file')
-print('Press "ctrl+C" to escape at any point\n')
 
 questions = [
     {
@@ -105,58 +99,64 @@ questions = [
         'when': lambda answers: answers['operation'] == 'load your history'
     },
 ]
-answers = prompt(questions, style=style)
 
-if answers['database'] == True:
-    create_new()
 
-get_api_key(answers['key'])
+def main():
+    log1("Youtube_Scraper", color="blue", figlet=True)
+    print('Please Choose the desired Options, option can be stored in property file')
+    print('Press "ctrl+C" to escape at any point\n')
 
-if answers['operation'] == 'Sync and generate download':
-    sync_generate_download()
+    answers = prompt(questions, style=style)
 
-elif answers['operation'] == 'Find oldest videos on a topic':
-    os.system("python oldest_videos.py -h")
+    if answers['database'] == True:
+        create_new()
 
-elif answers['operation'] == 'scrape a channel':
-    if answers['channel'] == 'Just Channel Stats (Individual video stats are not scraped)':
-        get_channel_details(answers['channelID'])
-    elif answers['channel'] == 'Scrape Everything for a channel':
-        entire_channel(answers['channelID'])
+    get_api_key(answers['key'])
 
-elif answers['operation'] == 'scrape a single playlist':
-    get_playlist_videos(answers['playlistID'])
+    if answers['operation'] == 'Sync and generate download':
+        sync_generate_download()
 
-elif answers['operation'] == 'load your history':
-    if answers['import'] == True:
-        res = 'y'
-    elif answers['import'] == False:
-        res = 'n'
-    print("Please Wait ...")
-    load_history(res)
+    elif answers['operation'] == 'Find oldest videos on a topic':
+        os.system("python oldest_videos.py -h")
 
-elif answers['operation'] == 'most watched video':
-    print("If your watch history is not loaded in database, it will give empty result")
-    print("Please enter, How many items to retrieve e.g. 10 for Top 10 \n")
-    n = int(input())
-    most_watched(n)
+    elif answers['operation'] == 'scrape a channel':
+        if answers['channel'] == 'Just Channel Stats (Individual video stats are not scraped)':
+            get_channel_details(answers['channelID'])
+        elif answers['channel'] == 'Scrape Everything for a channel':
+            entire_channel(answers['channelID'])
 
-elif answers['operation'] == 'early viewed video':
-    print("If your watch history is not loaded in database, it will give empty result")
-    print("Please enter, How many items to retrieve e.g. 10 for Top 10 \n")
-    n = int(input())
-    early_views(n)
+    elif answers['operation'] == 'scrape a single playlist':
+        get_playlist_videos(answers['playlistID'])
 
-elif answers['download'] == 'Videos from a single Channel':
-    print("It will list videos that are marked 'Is-Good' and is present in your database")
-    chc = input("Please enter the channel ID \t")
-    print("Please enter, How many items the list will contain (default=50) \n")
-    n = int(input())
-    generate_download([chc], n)
-elif answers['download'] == 'Videos from entire database':
-    print("It will list videos that are marked 'Is-Good' and is present in your database")
-    chc = ''
-    print("Please enter, How many items the list will contain (default=50)\n")
-    n = int(input())
-    generate_download([chc], n)
+    elif answers['operation'] == 'load your history':
+        if answers['import'] == True:
+            res = 'y'
+        elif answers['import'] == False:
+            res = 'n'
+        print("Please Wait ...")
+        load_history(res)
 
+    elif answers['operation'] == 'most watched video':
+        print("If your watch history is not loaded in database, it will give empty result")
+        print("Please enter, How many items to retrieve e.g. 10 for Top 10 \n")
+        n = int(input())
+        most_watched(n)
+
+    elif answers['operation'] == 'early viewed video':
+        print("If your watch history is not loaded in database, it will give empty result")
+        print("Please enter, How many items to retrieve e.g. 10 for Top 10 \n")
+        n = int(input())
+        early_views(n)
+
+    elif answers['download'] == 'Videos from a single Channel':
+        print("It will list videos that are marked 'Is-Good' and is present in your database")
+        chc = input("Please enter the channel ID \t")
+        print("Please enter, How many items the list will contain (default=50) \n")
+        n = int(input())
+        generate_download([chc], n)
+    elif answers['download'] == 'Videos from entire database':
+        print("It will list videos that are marked 'Is-Good' and is present in your database")
+        chc = ''
+        print("Please enter, How many items the list will contain (default=50)\n")
+        n = int(input())
+        generate_download([chc], n)
