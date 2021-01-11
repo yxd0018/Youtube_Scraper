@@ -9,10 +9,9 @@ from PyInquirer import style_from_dict, Token, prompt, Validator, ValidationErro
 from termcolor import colored
 import argparse
 
-from src_code import entire_channel, get_channel_details, get_api_key, create_new, load_history, get_playlist_videos, most_watched, early_views, download_n
-
-
-
+from src_code import (entire_channel, get_channel_details, get_api_key, create_new, load_history,
+                      get_playlist_videos, most_watched, early_views, generate_download,
+                      sync_generate_download)
 
 
 def log1(string, color, figlet=False):
@@ -24,6 +23,7 @@ def log1(string, color, figlet=False):
                 string, font='doom'), color))
     else:
         six.print_(string)
+
 
 log1("Youtube_Scraper", color="blue", figlet=True)
 log1("Welcome to Youtube_Scraper", "green")
@@ -37,7 +37,6 @@ style = style_from_dict({
 })
 
 
-
 class NumberValidator(Validator):
     def validate(self, document):
         try:
@@ -48,31 +47,33 @@ class NumberValidator(Validator):
                 cursor_position=len(document.text))  # Move cursor to end
 
 
-print('Please Choose the desired Options')
+print('Please Choose the desired Options, option can be stored in property file')
 print('Press "ctrl+C" to escape at any point\n')
 
 questions = [
     {
         'type': 'confirm',
-        'name': 'Database',
-        'message': 'Do you want to create a new database (No, if you already have one)',
+        'name': 'database',
+        'message': 'Do you want to create a new database (default=No, if you already have one)',
         'default': False
     },
     {
         'type': 'input',
         'name': 'key',
-        'message': 'Please enter your Youtube API key ',
+        'message': 'Please enter your Youtube API key',
     },
     {
         'type': 'list',
         'name': 'operation',
         'message': 'What do you want to do?',
-        'choices': ['Find oldest videos on a topic', 'Scrape a Channel','Scrape a Single Playlist' ,'Load Your History','Most Watched Video','Early Viewed Video','Generate Download List'],
+        'choices': ['Sync and generate download', 'Scrape a Channel', 'Scrape a Single Playlist',
+                    'Load Your History', 'Most Watched Video', 'Early Viewed Video',
+                    'Generate Download List', 'Find oldest videos on a topic', ],
         'filter': lambda val: val.lower()
     },
     {
         'type': 'list',
-        'name': 'Channel',
+        'name': 'channel',
         'message': 'Select Further \n Scraping all videos for a big channel will surpass your free API Limit',
         'choices': ['Scrape Everything for a channel', 'Just Channel Stats (Individual video stats are not scraped)'],
         'when': lambda answers: answers['operation'] == 'scrape a channel'
@@ -91,10 +92,10 @@ questions = [
     },
     {
         'type': 'list',
-        'name': 'Download',
+        'name': 'download',
         'message': 'What should the list contain?',
         'choices': ['Videos from a single Channel', 'Videos from entire database'],
-        'when': lambda answers: answers['operation'] == 'generate download list'
+        'when': lambda answers: answers['operation'] == 'generate download list in reverse order'
     },
     {
         'type': 'confirm',
@@ -106,18 +107,21 @@ questions = [
 ]
 answers = prompt(questions, style=style)
 
-if answers['Database'] == True:
+if answers['database'] == True:
     create_new()
 
 get_api_key(answers['key'])
 
-if answers['operation'] == 'find oldest videos on a topic':
+if answers['operation'] == 'Sync and generate download':
+    sync_generate_download()
+
+elif answers['operation'] == 'Find oldest videos on a topic':
     os.system("python oldest_videos.py -h")
 
 elif answers['operation'] == 'scrape a channel':
-    if answers['Channel'] == 'Just Channel Stats (Individual video stats are not scraped)':
+    if answers['channel'] == 'Just Channel Stats (Individual video stats are not scraped)':
         get_channel_details(answers['channelID'])
-    elif answers['Channel'] == 'Scrape Everything for a channel':
+    elif answers['channel'] == 'Scrape Everything for a channel':
         entire_channel(answers['channelID'])
 
 elif answers['operation'] == 'scrape a single playlist':
@@ -143,15 +147,16 @@ elif answers['operation'] == 'early viewed video':
     n = int(input())
     early_views(n)
 
-elif answers['Download'] == 'Videos from a single Channel':
+elif answers['download'] == 'Videos from a single Channel':
     print("It will list videos that are marked 'Is-Good' and is present in your database")
     chc = input("Please enter the channel ID \t")
-    print("Please enter, How many items the list will contain \n")
+    print("Please enter, How many items the list will contain (default=50) \n")
     n = int(input())
-    download_n(chc,n)
-elif answers['Download'] == 'Videos from entire database':
+    generate_download([chc], n)
+elif answers['download'] == 'Videos from entire database':
     print("It will list videos that are marked 'Is-Good' and is present in your database")
     chc = ''
-    print("Please enter, How many items the list will contain \n")
+    print("Please enter, How many items the list will contain (default=50)\n")
     n = int(input())
-    download_n(chc,n)
+    generate_download([chc], n)
+
