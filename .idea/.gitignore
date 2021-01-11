@@ -1,0 +1,21 @@
+# Default ignored files
+.DS_Store
+._*
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+.idea/*
+*.iml
+.gitignore/*
+.git/*
+.github/*
+*.class
+target/
+
+youtube.db
+# Datasource local storage ignored files
+dataSources.local.xml
+# Editor-based HTTP Client requests
+httpRequests/
+# Zeppelin ignored files
+ZeppelinRemoteNotebooks/
