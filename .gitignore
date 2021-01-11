@@ -1,8 +1,13 @@
 venv
 youtube.db
 test.py
-test2.py
-takeout
 __pycache__
 download_list.txt
 Later.txt
+# Default ignored files
+.DS_Store
+._*
+.idea/*
+*.iml
+.git/*
+.github/*
