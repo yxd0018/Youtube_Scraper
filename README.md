@@ -1,16 +1,9 @@
 # Youtube_scrape
-<img src="https://github.com/CriticalHunter/Youtube_Scraper/blob/master/Assets/title.jpg" >
-<p align="center" style="text-align: center;">
-<a href="https://lbesson.mit-license.org">
-  <img alt="MIT license"
-       src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square"
-       align="center">
-<a href="https://twitter.com/intent/tweet?text=Wow:&url=https%3A%2F%2Fgithub.com%2FCriticalHunter%2FYoutube_stats.git"><img alt="Twitter" src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2FCriticalHunter%2FYoutube_Scraper.git"></a>
+
     
 Scrape data about an entire Channel or just a Playlist, using Youtube API. No OAuth is required.
 
-## :heavy_check_mark: Features
-Following features are available :
+## Features
 
 ![CLI](/Assets/example_0.0.jpg)
 
@@ -108,6 +101,8 @@ There are several ways to help.
 4. **Contribute**: You don't have to be programmer to help. 
      1. **Treat Me A Coffee Instead** [Paypal](https://paypal.me/CriticalHunter23)
 
+## batch script for youtube-dl
 
-### Pull Requests 
-**Pull requests** are of course very welcome! Please make sure to also include the issue number in your commit message, if you're fixing a particular issue (e.g.: `feat: add nice feature with the number #31`).
+Personal script yt.bat to use youtube-dl and aria2 to download video (mp4/mkv/u3m8/...) from various sites. 
+
+

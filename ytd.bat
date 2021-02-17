@@ -31,6 +31,8 @@ set prefix=youtube-dl ^
 --yes-playlist ^
 --output "%location%/%%(title)s.%%(ext)s"
 
+set ffmpeg_config=--prefer-ffmpeg --ffmpeg-location "c:/PortableApps/ffmpeg/bin"
+
 set aria2=--external-downloader aria2c  ^
 --external-downloader-args "-j 16 -x 16 -s 16 -k 1M --console-log-level=error --enable-rpc=false"
 
@@ -61,12 +63,10 @@ IF /i "%reso%" == "3" (
     IF /i "%source%" == "3" (set size=80) else (set size=1080)
 )
 
-set video_config=--prefer-ffmpeg ^
---ffmpeg-location "c:/PortableApps/ffmpeg/bin" ^
---format "bestvideo[ext=mkv][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=flv][height<=%size%]+bestaudio[ext=mp3]/best[height<=%size%]/best[filesize<100M]/best "
+set video_config=--format "bestvideo[ext=mkv][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=flv][height<=%size%]+bestaudio[ext=mp3]/best[height<=%size%]/best[filesize<100M]/best "
 
-IF /i "%source%" == ""  (set cmd=%prefix% %aria2% %video_config% "%*")
-IF /i "%source%" == "2" (set cmd=%prefix% %video_config% %list_config%)
+IF /i "%source%" == ""  (set cmd=%prefix% %aria2% %ffmpeg_config% %video_config% "%*")
+IF /i "%source%" == "2" (set cmd=%prefix% %ffmpeg_config% %video_config% %list_config%)
 IF /i "%source%" == "3" (set cmd=annie -f %size% -p "%*")
 goto commonexit
 
@@ -77,8 +77,8 @@ IF /i "%source%" == "2" (set cmd=%prefix% %audio_config% %list_config%)
 goto commonexit
 
 :m3u8
-IF /i "%source%" == "" (set cmd=%prefix% "%*")
-IF /i "%source%" == "2" (set cmd=%prefix% %list_config%)
+IF /i "%source%" == "" (set cmd=%prefix% %ffmpeg_config% "%*")
+IF /i "%source%" == "2" (set cmd=%prefix% %ffmpeg_config% %list_config%)
 goto commonexit
 
 :commonexit

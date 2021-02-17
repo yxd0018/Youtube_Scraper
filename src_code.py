@@ -477,6 +477,35 @@ def get_playlist_videos(cur, playlistID):
 
 @db_connector
 def get_channel_videos(cur, channel_id):
+    '''
+    probably go through search is better
+
+    https://www.googleapis.com/youtube/v3/search endpoint instead of https://www.googleapis.com/youtube/v3/channels.
+    example with channelId and type parameters; (type parameter can be video, playlist, channel)
+
+    https://www.googleapis.com/youtube/v3/search?key={your_key_here}&channelId={channel_id_here}&part=snippet,id&order=date&maxResults=20
+
+$(document).ready(function() {
+  $.get(
+    "https://www.googleapis.com/youtube/v3/search",{
+      part : 'snippet',
+      channelId : 'UCR5wZcXtOUka8jTA57flzMg',
+      type : 'video',
+      key: 'MyKey'},
+      function(data) {
+        $.each( data.items, function( i, item ) {
+          console.log(item);
+        })
+      }
+  );
+});
+
+    ## get latest video
+    You have do to this by fetching playlist items. Get your channel id. It should look like this: UC######################. Now you have to replace the 'C' to 'U'. Like this: UU######################. You can call the youtube api with this id now.
+
+https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=UU######################&maxResults=5&key=[YOUR_API_KEY]
+
+    '''
     global youtube
     res = youtube.channels().list(id=channel_id,
                                   part='contentDetails').execute()
