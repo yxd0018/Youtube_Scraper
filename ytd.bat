@@ -8,8 +8,8 @@
 @rem cd /d %~dp0
 @rem -v # Print various debugging information
 
-set download_default=D:/temp/download
-set download_list=D:/temp/download/tmp
+set download_default=D:/temp/download/youtube
+set download_list=D:/temp/download/youtube/temp
 set "source="
 set "reso="
 set /p source="config source: enter=single(use ^ before &), 2=config file, 3=bili: "
@@ -29,12 +29,11 @@ set prefix=youtube-dl ^
 --no-check-certificate ^
 --console-title ^
 --yes-playlist ^
+--prefer-ffmpeg --ffmpeg-location "c:/PortableApps/ffmpeg/bin" ^
 --output "%location%/%%(title)s.%%(ext)s"
 
-set ffmpeg_config=--prefer-ffmpeg --ffmpeg-location "c:/PortableApps/ffmpeg/bin"
-
 set aria2=--external-downloader aria2c  ^
---external-downloader-args "-j 16 -x 16 -s 16 -k 1M --console-log-level=error --enable-rpc=false"
+--external-downloader-args "-j 16 -x 16 -s 16 -k 1M --console-log-level=error --enable-rpc=false "
 
 set audio_config=--extract-audio ^
 --audio-format mp3 ^
@@ -65,9 +64,9 @@ IF /i "%reso%" == "3" (
 
 set video_config=--format "bestvideo[ext=mkv][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=mp4][height<=%size%]+bestaudio[ext=mp3]/bestvideo[ext=flv][height<=%size%]+bestaudio[ext=mp3]/best[height<=%size%]/best[filesize<100M]/best "
 
-IF /i "%source%" == ""  (set cmd=%prefix% %aria2% %ffmpeg_config% %video_config% "%*")
-IF /i "%source%" == "2" (set cmd=%prefix% %ffmpeg_config% %video_config% %list_config%)
-IF /i "%source%" == "3" (set cmd=annie -f %size% -p "%*")
+IF /i "%source%" == ""  (set cmd=%prefix% %aria2% %video_config% "%*")
+IF /i "%source%" == "2" (set cmd=%prefix% %video_config% %list_config%)
+IF /i "%source%" == "3" (set cmd=annie -f %size% -o %download_default% -p "%*")
 goto commonexit
 
 :audio
@@ -77,8 +76,8 @@ IF /i "%source%" == "2" (set cmd=%prefix% %audio_config% %list_config%)
 goto commonexit
 
 :m3u8
-IF /i "%source%" == "" (set cmd=%prefix% %ffmpeg_config% "%*")
-IF /i "%source%" == "2" (set cmd=%prefix% %ffmpeg_config% %list_config%)
+IF /i "%source%" == "" (set cmd=%prefix% "%*")
+IF /i "%source%" == "2" (set cmd=%prefix% %list_config%)
 goto commonexit
 
 :commonexit
